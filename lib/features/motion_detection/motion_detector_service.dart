@@ -3,19 +3,13 @@ import 'dart:async';
 import 'package:flutter/services.dart';
 
 class MotionDetectionSample {
-  const MotionDetectionSample({
-    required this.motionScore,
-    required this.sensorTimestampNs,
-    this.fps,
-  });
+  const MotionDetectionSample({required this.motionScore, required this.sensorTimestampNs});
 
   final double motionScore;
   final int sensorTimestampNs;
-  final double? fps;
 }
 
 typedef MotionDetectedCallback = void Function(MotionDetectionSample sample);
-typedef MotionFpsCallback = void Function(double fps);
 
 class MotionDetectorService {
   MotionDetectorService({double initialThreshold = 0.22}) : _threshold = initialThreshold;
@@ -26,7 +20,6 @@ class MotionDetectorService {
   double _threshold;
   bool _monitoring = false;
   MotionDetectedCallback? _onMotionDetected;
-  MotionFpsCallback? _onFps;
   StreamSubscription<dynamic>? _subscription;
 
   bool get monitoring => _monitoring;
@@ -38,8 +31,9 @@ class MotionDetectorService {
     );
   }
 
-  void setOnFps(MotionFpsCallback callback) {
-    _onFps = callback;
+  Future<double?> getLastFps() async {
+    final value = await _methodChannel.invokeMethod<double>('getLastFps');
+    return value;
   }
 
   Future<void> startMonitoring(MotionDetectedCallback onMotionDetected) async {
@@ -63,22 +57,13 @@ class MotionDetectorService {
 
     _subscription = _eventChannel.receiveBroadcastStream().listen(
       (dynamic raw) {
-        if (raw is! Map) {
+        if (raw is! Map || !_monitoring) {
           return;
         }
 
         final data = Map<String, dynamic>.from(raw);
         final type = (data['type'] ?? '').toString();
-
-        if (type == 'fps') {
-          final fps = _asDouble(data['fps']);
-          if (fps != null) {
-            _onFps?.call(fps);
-          }
-          return;
-        }
-
-        if (type != 'motion' || !_monitoring) {
+        if (type != 'motion') {
           return;
         }
 
@@ -89,11 +74,7 @@ class MotionDetectorService {
         }
 
         _onMotionDetected?.call(
-          MotionDetectionSample(
-            motionScore: motionScore,
-            sensorTimestampNs: sensorTimestampNs,
-            fps: _asDouble(data['fps']),
-          ),
+          MotionDetectionSample(motionScore: motionScore, sensorTimestampNs: sensorTimestampNs),
         );
       },
       onError: (_) {

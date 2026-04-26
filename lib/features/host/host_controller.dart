@@ -105,9 +105,6 @@ class HostController extends ChangeNotifier {
       case MessageType.pong:
         unawaited(_handlePong(deviceId, envelope.payload));
         break;
-      case MessageType.telemetry:
-        _handleTelemetry(deviceId, envelope.payload);
-        break;
       default:
         break;
     }
@@ -168,7 +165,7 @@ class HostController extends ChangeNotifier {
     return DeviceRole.split;
   }
 
-  Future<void> _startSyncSession(String deviceId) async {
+  Future<void> _startSyncSession(String deviceId, {bool diagnostics = false}) async {
     if (_syncingDevices.contains(deviceId)) {
       return;
     }
@@ -180,7 +177,11 @@ class HostController extends ChangeNotifier {
 
     _syncingDevices.add(deviceId);
     _syncSamples[deviceId] = <_SyncSample>[];
-    _devices[deviceId] = existing.copyWith(synced: false, clearLatency: true);
+    _devices[deviceId] = existing.copyWith(
+      synced: false,
+      clearLatency: diagnostics,
+      clearCurrentFps: diagnostics,
+    );
     notifyListeners();
 
     try {
@@ -191,7 +192,12 @@ class HostController extends ChangeNotifier {
 
         final t1HostNs = await _clockService.nowNs();
         final pingId = '${deviceId}_${_pingCounter++}_$t1HostNs';
-        _pendingPings[pingId] = _PendingPing(deviceId: deviceId, t1HostNs: t1HostNs, sync: true);
+        _pendingPings[pingId] = _PendingPing(
+          deviceId: deviceId,
+          t1HostNs: t1HostNs,
+          sync: true,
+          diagnostics: diagnostics,
+        );
 
         _sendToDevice(
           deviceId: deviceId,
@@ -199,6 +205,7 @@ class HostController extends ChangeNotifier {
           payload: <String, dynamic>{
             'pingId': pingId,
             'sync': true,
+            'diagnostics': diagnostics,
             'sampleIndex': sampleIndex,
             'sampleCount': 10,
             't1HostNs': t1HostNs,
@@ -311,23 +318,17 @@ class HostController extends ChangeNotifier {
         .putIfAbsent(deviceId, () => <_SyncSample>[])
         .add(_SyncSample(rttNs: rttNs, offsetNs: offsetNs));
 
+    if (pending.diagnostics) {
+      final existing = _devices[deviceId];
+      final fps = _asDouble(payload['fps']);
+      if (existing != null && fps != null) {
+        _devices[deviceId] = existing.copyWith(currentFps: fps);
+      }
+    }
+
     if (_syncSamples[deviceId]!.length >= 10) {
       _finalizeSync(deviceId);
     }
-  }
-
-  void _handleTelemetry(String deviceId, Map<String, dynamic> payload) {
-    final existing = _devices[deviceId];
-    if (existing == null) {
-      return;
-    }
-
-    final fps = _asDouble(payload['fps']);
-    if (fps == null) {
-      return;
-    }
-
-    _devices[deviceId] = existing.copyWith(currentFps: fps);
   }
 
   void setRole(String deviceId, DeviceRole role) {
@@ -362,7 +363,7 @@ class HostController extends ChangeNotifier {
   }
 
   void testLatency(String deviceId) {
-    unawaited(_startSyncSession(deviceId));
+    unawaited(_startSyncSession(deviceId, diagnostics: true));
   }
 
   void startMonitoring() {
@@ -444,11 +445,17 @@ class HostController extends ChangeNotifier {
 }
 
 class _PendingPing {
-  const _PendingPing({required this.deviceId, required this.t1HostNs, required this.sync});
+  const _PendingPing({
+    required this.deviceId,
+    required this.t1HostNs,
+    required this.sync,
+    required this.diagnostics,
+  });
 
   final String deviceId;
   final int t1HostNs;
   final bool sync;
+  final bool diagnostics;
 }
 
 class _SyncSample {

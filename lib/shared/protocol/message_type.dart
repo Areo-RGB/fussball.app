@@ -8,7 +8,6 @@ class MessageType {
   static const trigger = 'trigger';
   static const ping = 'ping';
   static const pong = 'pong';
-  static const telemetry = 'telemetry';
   static const resetTimer = 'reset_timer';
   static const error = 'error';
 }

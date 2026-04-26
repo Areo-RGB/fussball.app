@@ -26,9 +26,7 @@ class ClientController extends ChangeNotifier {
        _identityService = identityService ?? DeviceIdentityService(),
        _motionDetectorService = motionDetectorService ?? MotionDetectorService(),
        _performanceModeService = performanceModeService ?? PerformanceModeService(),
-       _clockService = clockService ?? MonotonicClockService() {
-    _motionDetectorService.setOnFps(_onFpsUpdate);
-  }
+       _clockService = clockService ?? MonotonicClockService();
 
   final PermissionsService _permissionsService;
   final DeviceIdentityService _identityService;
@@ -46,7 +44,6 @@ class ClientController extends ChangeNotifier {
   DeviceRole role = DeviceRole.split;
   double sensitivity = 0.6;
   double lastMotionScore = 0;
-  double? currentFps;
   String? errorText;
 
   String get identityLabel {
@@ -178,30 +175,32 @@ class ClientController extends ChangeNotifier {
     notifyListeners();
   }
 
-  void _onFpsUpdate(double fps) {
-    currentFps = fps;
-    _connection?.send(type: MessageType.telemetry, payload: <String, dynamic>{'fps': fps});
-    notifyListeners();
-  }
-
   Future<void> _respondPong(Map<String, dynamic> pingPayload) async {
     final pingId = (pingPayload['pingId'] ?? 'ping').toString();
     final sync = pingPayload['sync'] == true;
+    final diagnostics = pingPayload['diagnostics'] == true;
     final t1HostNs = _asInt(pingPayload['t1HostNs']) ?? 0;
 
     final t2ClientNs = await _clockService.nowNs();
     final t3ClientNs = await _clockService.nowNs();
 
-    _connection?.send(
-      type: MessageType.pong,
-      payload: <String, dynamic>{
-        'pingId': pingId,
-        'sync': sync,
-        't1HostNs': t1HostNs,
-        't2ClientNs': t2ClientNs,
-        't3ClientNs': t3ClientNs,
-      },
-    );
+    final payload = <String, dynamic>{
+      'pingId': pingId,
+      'sync': sync,
+      'diagnostics': diagnostics,
+      't1HostNs': t1HostNs,
+      't2ClientNs': t2ClientNs,
+      't3ClientNs': t3ClientNs,
+    };
+
+    if (diagnostics) {
+      final fps = await _motionDetectorService.getLastFps();
+      if (fps != null) {
+        payload['fps'] = fps;
+      }
+    }
+
+    _connection?.send(type: MessageType.pong, payload: payload);
   }
 
   double _thresholdFromSensitivity(double value) {
