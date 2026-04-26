@@ -1,0 +1,7 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="Host App (Flutter)" type="FlutterRunConfigurationType" factoryName="Flutter">
+    <option name="filePath" value="$PROJECT_DIR$/lib/main_host.dart" />
+    <option name="additionalArgs" value="--flavor host" />
+    <method />
+  </configuration>
+</component>

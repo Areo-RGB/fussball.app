@@ -1,0 +1,60 @@
+# OS / editor noise
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*.tmp
+*.log
+
+# Python / misc transient files
+*.pyc
+__pycache__/
+
+# Flutter / Dart
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub/
+.pub-cache/
+build/
+coverage/
+**/doc/api/
+
+# Android / Gradle
+android/.gradle/
+android/local.properties
+android/**/build/
+android/app/debug/
+android/app/profile/
+android/app/release/
+*.keystore
+*.jks
+key.properties
+
+# iOS/macOS (not used now, still safe)
+**/ios/Flutter/.last_build_id
+
+# Symbol / obfuscation artifacts
+app.*.symbols
+app.*.map.json
+
+# IntelliJ / Android Studio
+*.iml
+*.ipr
+*.iws
+
+# Keep shared project settings, ignore local IDE state
+.idea/*
+!.idea/.gitignore
+!.idea/codeStyles/
+!.idea/codeStyles/**
+!.idea/runConfigurations/
+!.idea/runConfigurations/**
+!.idea/misc.xml
+!.idea/modules.xml
+
+# Local tooling/session state
+.playwright-cli/
+.serena/memories/
+.serena/project.local.yml

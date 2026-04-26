@@ -1,0 +1,7 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="Client App (Flutter)" type="FlutterRunConfigurationType" factoryName="Flutter">
+    <option name="filePath" value="$PROJECT_DIR$/lib/main_client.dart" />
+    <option name="additionalArgs" value="--flavor client" />
+    <method />
+  </configuration>
+</component>
