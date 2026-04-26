@@ -19,6 +19,7 @@ __pycache__/
 .pub-cache/
 build/
 coverage/
+test/
 **/doc/api/
 
 # Android / Gradle
@@ -58,3 +59,6 @@ app.*.map.json
 .playwright-cli/
 .serena/memories/
 .serena/project.local.yml
+
+.claude/
+.gitnexus
