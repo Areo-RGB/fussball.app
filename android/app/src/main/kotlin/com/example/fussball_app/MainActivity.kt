@@ -263,13 +263,28 @@ private class NativeMotionDetector(
         lastFps = 0.0
 
         startBackgroundThread()
-        openCamera()
+        // Execute camera and EGL initialization entirely on the background thread
+        backgroundHandler?.post {
+            openCamera()
+        }
     }
 
     fun stopMonitoring() {
         running = false
-        clearAeLockTimer()
-        closeCamera()
+
+        val handler = backgroundHandler
+        if (handler != null) {
+            // Ensure GLES resources are released on the correct thread
+            handler.post {
+                clearAeLockTimer()
+                closeCamera()
+            }
+        } else {
+            clearAeLockTimer()
+            closeCamera()
+        }
+
+        // stopBackgroundThread will wait for the posted tasks to finish via quitSafely
         stopBackgroundThread()
 
         lastTriggerTimestampNs = 0L
@@ -323,6 +338,11 @@ private class NativeMotionDetector(
 
         setupGlAnalyzer(selectedSize.width, selectedSize.height)
 
+        if (glAnalyzer?.externalTextureId == 0) {
+            Log.e(TAG, "GL Analyzer externalTextureId is 0, aborting camera open")
+            return
+        }
+
         if (ActivityCompat.checkSelfPermission(context, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
             Log.e(TAG, "Camera permission missing, cannot start motion detector")
             return
@@ -359,6 +379,10 @@ private class NativeMotionDetector(
     }
 
     private fun createHighSpeedSession(device: CameraDevice) {
+        if (cameraDevice == null) {
+            Log.e(TAG, "Camera device is null, cannot create high-speed session")
+            return
+        }
         val surface = previewSurface ?: run {
             Log.e(TAG, "Preview surface missing, cannot create high-speed session")
             return
@@ -414,11 +438,15 @@ private class NativeMotionDetector(
             }
 
             val requestList = session.createHighSpeedRequestList(builder.build())
-            session.setRepeatingBurst(requestList, null, backgroundHandler)
-            Log.i(
-                TAG,
-                "Repeating high-speed burst started, aeLocked=$aeLocked fpsRange=$selectedFpsRange size=${selectedSize.width}x${selectedSize.height}"
-            )
+            try {
+                session.setRepeatingBurst(requestList, null, backgroundHandler)
+                Log.i(
+                    TAG,
+                    "Repeating high-speed burst started, aeLocked=$aeLocked fpsRange=$selectedFpsRange size=${selectedSize.width}x${selectedSize.height}"
+                )
+            } catch (e: IllegalStateException) {
+                Log.w(TAG, "Hardware overload: setRepeatingBurst threw IllegalStateException", e)
+            }
         } catch (error: Throwable) {
             Log.e(TAG, "applyRepeatingRequest failed (aeLocked=$aeLocked range=$selectedFpsRange)", error)
             closeCamera()
@@ -726,7 +754,7 @@ private class GlRoiAnalyzer(
             return
         }
 
-        makeCurrent()
+        EGL14.eglMakeCurrent(display, surface, surface, context)
         if (program != 0) {
             GLES20.glDeleteProgram(program)
             program = 0
@@ -792,11 +820,26 @@ private class GlRoiAnalyzer(
             0
         )
         check(surface != EGL14.EGL_NO_SURFACE) { "Unable to create EGL pbuffer surface" }
-        makeCurrent()
+        makeCurrent(isInitializing = true)
     }
 
-    private fun makeCurrent() {
-        check(EGL14.eglMakeCurrent(display, surface, surface, context)) { "eglMakeCurrent failed" }
+    private fun makeCurrent(isInitializing: Boolean = false) {
+        if (!EGL14.eglMakeCurrent(display, surface, surface, context)) {
+            if (isInitializing) {
+                throw IllegalStateException("eglMakeCurrent failed during setup")
+            }
+            Log.w(TAG, "eglMakeCurrent failed, rebuilding entire EGL context")
+            EGL14.eglMakeCurrent(display, EGL14.EGL_NO_SURFACE, EGL14.EGL_NO_SURFACE, EGL14.EGL_NO_CONTEXT)
+            if (surface != EGL14.EGL_NO_SURFACE) EGL14.eglDestroySurface(display, surface)
+            if (context != EGL14.EGL_NO_CONTEXT) EGL14.eglDestroyContext(display, context)
+            if (display != EGL14.EGL_NO_DISPLAY) EGL14.eglTerminate(display)
+
+            display = EGL14.EGL_NO_DISPLAY
+            context = EGL14.EGL_NO_CONTEXT
+            surface = EGL14.EGL_NO_SURFACE
+
+            initialize()
+        }
     }
 
     private fun createExternalTexture(): Int {

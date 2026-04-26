@@ -366,10 +366,11 @@ class HostController extends ChangeNotifier {
     unawaited(_startSyncSession(deviceId, diagnostics: true));
   }
 
-  void startMonitoring() {
+  Future<void> startMonitoring() async {
     monitoringArmed = true;
-    _broadcast(type: MessageType.monitoringStart, payload: const <String, dynamic>{});
     notifyListeners();
+    await Future<void>.delayed(const Duration(milliseconds: 200));
+    _broadcast(type: MessageType.monitoringStart, payload: const <String, dynamic>{});
   }
 
   void stopMonitoring() {
