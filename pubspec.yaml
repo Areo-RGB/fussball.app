@@ -28,6 +28,7 @@ environment:
 # the latest version available on pub.dev. To see which dependencies have newer
 # versions available, run `flutter pub outdated`.
 dependencies:
+  flutter_skill: ^0.2.6
   flutter:
     sdk: flutter
 
@@ -37,6 +38,7 @@ dependencies:
   shelf_web_socket: ^3.0.0
   web_socket_channel: ^3.0.3
   cupertino_icons: ^1.0.8
+  sentry_flutter: ^9.19.0
 
 dev_dependencies:
   flutter_test:
@@ -48,6 +50,7 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
+  sentry_dart_plugin: ^3.3.0
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

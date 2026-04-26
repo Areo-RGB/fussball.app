@@ -177,42 +177,68 @@ class _TimerTab extends StatelessWidget {
     final splits = controller.timerEngine.splits;
 
     return Padding(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Expanded(
+            flex: 3,
             child: Center(
               child: Text(
                 controller.timerDisplay,
-                style: Theme.of(
-                  context,
-                ).textTheme.displayLarge?.copyWith(fontWeight: FontWeight.bold),
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.displayLarge?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 120,
+                  height: 1,
+                ),
               ),
             ),
           ),
-          FilledButton.icon(
-            onPressed: controller.resetTimer,
-            icon: const Icon(Icons.refresh),
-            label: const Text('Reset'),
+          Center(
+            child: FilledButton.icon(
+              onPressed: controller.resetTimer,
+              style: FilledButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 18),
+                textStyle: Theme.of(context).textTheme.headlineSmall,
+              ),
+              icon: const Icon(Icons.refresh),
+              label: const Text('Reset'),
+            ),
           ),
-          const SizedBox(height: 16),
-          Text('Splits', style: Theme.of(context).textTheme.titleMedium),
-          const SizedBox(height: 8),
+          const SizedBox(height: 28),
+          Text('Splits', style: Theme.of(context).textTheme.headlineMedium),
+          const SizedBox(height: 12),
           Expanded(
-            child: splits.isEmpty
-                ? const Center(child: Text('No split checkpoints yet.'))
-                : ListView.builder(
-                    itemCount: splits.length,
-                    itemBuilder: (context, index) {
-                      final split = splits[index];
-                      return ListTile(
-                        leading: Text('#${index + 1}'),
-                        title: Text(split.deviceName),
-                        trailing: Text(formatElapsedMillisRoundUp(split.elapsedMs)),
-                      );
-                    },
-                  ),
+            flex: 2,
+            child: Card(
+              margin: EdgeInsets.zero,
+              clipBehavior: Clip.antiAlias,
+              child: splits.isEmpty
+                  ? const Center(child: Text('No split checkpoints yet.'))
+                  : ListView.separated(
+                      itemCount: splits.length,
+                      separatorBuilder: (_, index) => const Divider(height: 1),
+                      itemBuilder: (context, index) {
+                        final split = splits[index];
+                        return ListTile(
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                          leading: Text(
+                            '#${index + 1}',
+                            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                              color: Theme.of(context).colorScheme.primary,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          title: Text(split.deviceName),
+                          trailing: Text(
+                            formatElapsedMillisRoundUp(split.elapsedMs),
+                            style: Theme.of(context).textTheme.headlineSmall,
+                          ),
+                        );
+                      },
+                    ),
+            ),
           ),
         ],
       ),

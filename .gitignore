@@ -62,3 +62,4 @@ app.*.map.json
 
 .claude/
 .gitnexus
+/.cursor

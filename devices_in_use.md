@@ -1,0 +1,6 @@
+Role	Client Name	MAC Address	Assigned IP
+Host	Xiaomi-Pad-7	6C:48:3F:B9:AB:50	192.168.0.103
+Client	Pixel-7	24:95:2F:52:A0:FA	192.168.0.101
+Client	HUAWEI_P20	F0:0F:EC:20:37:40	192.168.0.105
+Client	OnePlus	48:74:12:A0:CD:17	192.168.0.102
+Client	Redmi-Note-12	FE:E7:F8:32:42:FE	192.168.0.104
